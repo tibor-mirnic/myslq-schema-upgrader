@@ -15,5 +15,10 @@
   "bugs": {
     "url": "https://github.com/tibor-mirnic/myslq-schema-upgrader/issues"
   },
-  "homepage": "https://github.com/tibor-mirnic/myslq-schema-upgrader#readme"
+  "homepage": "https://github.com/tibor-mirnic/myslq-schema-upgrader#readme",
+  "devDependencies": {
+    "@types/fs-extra": "^3.0.0",
+    "@types/knex": "0.0.50",
+    "@types/mysql": "0.0.32"
+  }
 }
