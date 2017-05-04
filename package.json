@@ -1,0 +1,19 @@
+{
+  "name": "myslq-schema-upgrader",
+  "version": "1.0.0",
+  "description": "Database backup and upgrade",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tibor-mirnic/myslq-schema-upgrader.git"
+  },
+  "author": "Tibor Mirnić",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tibor-mirnic/myslq-schema-upgrader/issues"
+  },
+  "homepage": "https://github.com/tibor-mirnic/myslq-schema-upgrader#readme"
+}
