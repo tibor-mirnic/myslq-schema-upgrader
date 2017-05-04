@@ -1,8 +1,5 @@
 # node
 node_modules/
 
-# app
-dist/
-
 # IDE
 .vscode
