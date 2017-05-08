@@ -50,16 +50,14 @@ export class SchemaUpgrader {
     this.knex = client(config);
   }
 
-  testConnection() {
-    return new Promise((resolve, reject) => {
-      this.knex.raw('SELECT 1 AS RESULT')
-      .then(() => {
-        resolve(true);
-      })
-      .catch((error) => {          
-        reject(new SchemaUpgraderError((error || '').toString(), 'Testing Connection Error'));
-      });
-    });
+  async testConnection() {
+    try {
+      await this.knex.raw('SELECT 1 AS RESULT');
+      return true;    
+    }
+    catch(error) {      
+      throw new SchemaUpgraderError((error || '').toString(), 'Testing Connection Error');
+    }
   }
 
   validateConfig() {
@@ -115,40 +113,39 @@ export class SchemaUpgrader {
     child_process.execSync(command, { stdio:[0,1,2] });
   }
 
-  upgrade() {
-    return new Promise((resolve, reject) => {
-      try {
-        this.validateConfig();
-        this.loadScripts();
-        this.createConnection();
-        this.testConnection()
-        .then(() => {     
-          this.knex.raw(this.schemaUpgraderConfig.getVersionQuery || '')            
-          .then(response => {                        
-            try {
-              this.currentVersion = response[0][0]['current'];
+  // doUpgrade() {
+  //   let promiseArray = [];
+  //   return new Promise((resolve, reject) => {
+  //     try {
+  //       let current = parseInt(this.currentVersion);
+  //       for(let i = current; i < this.upgradeScripts.length; i++) {
+          
+  //       }
+  //     }
+  //     catch(error) {
+  //       reject(new SchemaUpgraderError((error || '').toString()));
+  //     }
+  //   });
+  // }
 
-              if(this.schemaUpgraderConfig.backupAndRestoreOnError) {
-                this.backup();
-              }
+  async upgrade() {
+    try {
+      this.validateConfig();
+      this.loadScripts();
+      this.createConnection();
 
-              resolve(this.currentVersion);
-            }
-            catch(error) {
-              reject(new SchemaUpgraderError((error || '').toString()));  
-            }                      
-          })
-          .catch(error => {              
-            reject(new SchemaUpgraderError((error || '').toString()));
-          });          
-        })
-        .catch((error) => {
-          reject(error);
-        });
+      await this.testConnection();
+      let response = await this.knex.raw(this.schemaUpgraderConfig.getVersionQuery || '');
+      this.currentVersion = response[0][0]['current'];
+
+      if(this.schemaUpgraderConfig.backupAndRestoreOnError) {
+        this.backup();
       }
-      catch(error) {
-        reject(error);
-      }
-    });    
+      
+      return this.currentVersion;      
+    }
+    catch(error) {
+      throw error;
+    }    
   }
 }

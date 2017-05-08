@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const schema_upgrader_error_1 = require("./schema-upgrader-error");
 const fs = require("fs-extra");
@@ -36,14 +44,14 @@ class SchemaUpgrader {
         this.knex = client(config);
     }
     testConnection() {
-        return new Promise((resolve, reject) => {
-            this.knex.raw('SELECT 1 AS RESULT')
-                .then(() => {
-                resolve(true);
-            })
-                .catch((error) => {
-                reject(new schema_upgrader_error_1.SchemaUpgraderError((error || '').toString(), 'Testing Connection Error'));
-            });
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.knex.raw('SELECT 1 AS RESULT');
+                return true;
+            }
+            catch (error) {
+                throw new schema_upgrader_error_1.SchemaUpgraderError((error || '').toString(), 'Testing Connection Error');
+            }
         });
     }
     validateConfig() {
@@ -90,37 +98,35 @@ class SchemaUpgrader {
         let command = `mysql -u ${this.schemaUpgraderConfig.user} -p${this.schemaUpgraderConfig.password} < ${this.backupFilePath}`;
         child_process.execSync(command, { stdio: [0, 1, 2] });
     }
+    // doUpgrade() {
+    //   let promiseArray = [];
+    //   return new Promise((resolve, reject) => {
+    //     try {
+    //       let current = parseInt(this.currentVersion);
+    //       for(let i = current; i < this.upgradeScripts.length; i++) {
+    //       }
+    //     }
+    //     catch(error) {
+    //       reject(new SchemaUpgraderError((error || '').toString()));
+    //     }
+    //   });
+    // }
     upgrade() {
-        return new Promise((resolve, reject) => {
+        return __awaiter(this, void 0, void 0, function* () {
             try {
                 this.validateConfig();
                 this.loadScripts();
                 this.createConnection();
-                this.testConnection()
-                    .then(() => {
-                    this.knex.raw(this.schemaUpgraderConfig.getVersionQuery || '')
-                        .then(response => {
-                        try {
-                            this.currentVersion = response[0][0]['current'];
-                            if (this.schemaUpgraderConfig.backupAndRestoreOnError) {
-                                this.backup();
-                            }
-                            resolve(this.currentVersion);
-                        }
-                        catch (error) {
-                            reject(new schema_upgrader_error_1.SchemaUpgraderError((error || '').toString()));
-                        }
-                    })
-                        .catch(error => {
-                        reject(new schema_upgrader_error_1.SchemaUpgraderError((error || '').toString()));
-                    });
-                })
-                    .catch((error) => {
-                    reject(error);
-                });
+                yield this.testConnection();
+                let response = yield this.knex.raw(this.schemaUpgraderConfig.getVersionQuery || '');
+                this.currentVersion = response[0][0]['current'];
+                if (this.schemaUpgraderConfig.backupAndRestoreOnError) {
+                    this.backup();
+                }
+                return this.currentVersion;
             }
             catch (error) {
-                reject(error);
+                throw error;
             }
         });
     }

@@ -7,10 +7,10 @@ export declare class SchemaUpgrader {
     private backupFilePath;
     constructor(options: ISchemaUpgrader);
     createConnection(): void;
-    testConnection(): Promise<{}>;
+    testConnection(): Promise<boolean>;
     validateConfig(): void;
     loadScripts(): void;
     backup(): void;
     restore(): void;
-    upgrade(): Promise<{}>;
+    upgrade(): Promise<string>;
 }
