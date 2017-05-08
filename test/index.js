@@ -3,12 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const schema_upgrader_1 = require("./../src/schema-upgrader");
 const path = require("path");
 new schema_upgrader_1.SchemaUpgrader({
-    connectionOptions: {
-        host: '127.0.0.1',
-        user: 'test',
-        password: 'test',
-        database: 'test'
-    },
+    host: '127.0.0.1',
+    user: 'test',
+    password: 'test',
+    database: 'test',
     upgradeScriptsPath: path.join(__dirname, 'scripts'),
     backupPath: path.join(__dirname, 'backup')
 })

@@ -2,7 +2,10 @@ export interface ISchemaUpgrader {
   /*
     Connection options. We are using knex for database manipulation, multiple databases are supported.
   */
-  connectionOptions: any;
+  host: string,
+  user: string,
+  password: string,
+  database: string,
   
   /*
     Path to sql upgrade scripts folder.

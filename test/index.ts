@@ -3,15 +3,13 @@ import { SchemaUpgraderError } from './../src/schema-upgrader-error';
 
 import * as path from 'path';
 
-new SchemaUpgrader({
-  connectionOptions: {
-    host: '127.0.0.1',
-    user: 'test',
-    password: 'test',
-    database: 'test'
-  },
+new SchemaUpgrader({  
+  host: '127.0.0.1',
+  user: 'test',
+  password: 'test',
+  database: 'test',
   upgradeScriptsPath: path.join(__dirname, 'scripts'),
-  backupPath: path.join(__dirname, 'backup')  
+  backupPath: path.join(__dirname, 'backup')
 })
 .upgrade()
 .then((current: any) => {

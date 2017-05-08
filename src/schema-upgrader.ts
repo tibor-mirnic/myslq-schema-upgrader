@@ -5,12 +5,17 @@ import { SchemaUpgraderError } from './schema-upgrader-error';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as client from 'knex';
+import * as child_process from 'child_process';
+import * as moment from 'moment';
 
 export class SchemaUpgrader {
   private schemaUpgraderConfig: ISchemaUpgrader;
 
   private upgradeScripts: ISqlScript[];
   private knex: client;
+
+  private currentVersion: string;
+  private backupFilePath: string;
 
   constructor(options: ISchemaUpgrader) {
     this.schemaUpgraderConfig = <ISchemaUpgrader>{
@@ -34,7 +39,12 @@ export class SchemaUpgrader {
         min: 2,
         max: 10
       },
-      connection: Object.assign({}, this.schemaUpgraderConfig.connectionOptions)
+      connection: {
+        host: this.schemaUpgraderConfig.host,
+        user: this.schemaUpgraderConfig.user,
+        password: this.schemaUpgraderConfig.password,
+        database: this.schemaUpgraderConfig.database
+      }
     };
     
     this.knex = client(config);
@@ -53,7 +63,7 @@ export class SchemaUpgrader {
   }
 
   validateConfig() {
-    if(!this.schemaUpgraderConfig.connectionOptions) {
+    if(!this.schemaUpgraderConfig.host || !this.schemaUpgraderConfig.user || !this.schemaUpgraderConfig.password || !this.schemaUpgraderConfig.database) {
       throw new SchemaUpgraderError('Please define connection config');
     }
 
@@ -91,6 +101,20 @@ export class SchemaUpgrader {
     });
   }
 
+  backup() {
+    let backupDate = moment(new Date()).format('YYYY-MM-DD-HH-mm-ss');
+    let fileName = `${this.schemaUpgraderConfig.database}-${this.currentVersion}-migration-${backupDate}.sql`;
+    this.backupFilePath = path.join(this.schemaUpgraderConfig.backupPath, fileName);
+    
+    let command = `mysqldump --databases ${this.schemaUpgraderConfig.database} --add-drop-database --triggers --routines --events --single-transaction --user=${this.schemaUpgraderConfig.user} --password=${this.schemaUpgraderConfig.password} > ${this.backupFilePath}`;
+    child_process.execSync(command, { stdio:[0,1,2] });
+  }
+
+  restore() {
+    let command = `mysql -u ${this.schemaUpgraderConfig.user} -p${this.schemaUpgraderConfig.password} < ${this.backupFilePath}`;
+    child_process.execSync(command, { stdio:[0,1,2] });
+  }
+
   upgrade() {
     return new Promise((resolve, reject) => {
       try {
@@ -100,8 +124,19 @@ export class SchemaUpgrader {
         this.testConnection()
         .then(() => {     
           this.knex.raw(this.schemaUpgraderConfig.getVersionQuery || '')            
-          .then(response => {
-            resolve(response[0][0]);
+          .then(response => {                        
+            try {
+              this.currentVersion = response[0][0]['current'];
+
+              if(this.schemaUpgraderConfig.backupAndRestoreOnError) {
+                this.backup();
+              }
+
+              resolve(this.currentVersion);
+            }
+            catch(error) {
+              reject(new SchemaUpgraderError((error || '').toString()));  
+            }                      
           })
           .catch(error => {              
             reject(new SchemaUpgraderError((error || '').toString()));

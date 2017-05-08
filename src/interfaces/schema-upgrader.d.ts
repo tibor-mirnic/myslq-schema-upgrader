@@ -1,5 +1,8 @@
 export interface ISchemaUpgrader {
-    connectionOptions: any;
+    host: string;
+    user: string;
+    password: string;
+    database: string;
     upgradeScriptsPath: string;
     backupPath: string;
     debug?: boolean;
