@@ -12,5 +12,6 @@ export declare class SchemaUpgrader {
     loadScripts(): void;
     backup(): void;
     restore(): void;
+    doUpgrade(): Promise<void>;
     upgrade(): Promise<string>;
 }

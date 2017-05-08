@@ -20,7 +20,7 @@ class SchemaUpgrader {
             backupAndRestoreOnError: true,
             deleteOnUpgrade: false,
             getVersionQuery: 'SELECT current FROM version',
-            setVersionQuery: 'UPDATE version SET current=:version'
+            setVersionQuery: 'UPDATE version SET current=?'
         };
         this.upgradeScripts = [];
         // Apply the configuration  
@@ -98,19 +98,28 @@ class SchemaUpgrader {
         let command = `mysql -u ${this.schemaUpgraderConfig.user} -p${this.schemaUpgraderConfig.password} < ${this.backupFilePath}`;
         child_process.execSync(command, { stdio: [0, 1, 2] });
     }
-    // doUpgrade() {
-    //   let promiseArray = [];
-    //   return new Promise((resolve, reject) => {
-    //     try {
-    //       let current = parseInt(this.currentVersion);
-    //       for(let i = current; i < this.upgradeScripts.length; i++) {
-    //       }
-    //     }
-    //     catch(error) {
-    //       reject(new SchemaUpgraderError((error || '').toString()));
-    //     }
-    //   });
-    // }
+    doUpgrade() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                let current = parseInt(this.currentVersion);
+                for (let i = current + 1; i < this.upgradeScripts.length; i++) {
+                    yield this.knex.raw(this.upgradeScripts[i].sql);
+                }
+                let updatedVersion = this.upgradeScripts[this.upgradeScripts.length - 1].name.substring(0, 4);
+                yield this.knex.raw(this.schemaUpgraderConfig.setVersionQuery || '', [updatedVersion]);
+                this.currentVersion = updatedVersion;
+            }
+            catch (error) {
+                try {
+                    this.restore();
+                    throw error;
+                }
+                catch (e) {
+                    throw new schema_upgrader_error_1.SchemaUpgraderError((e || '').toString());
+                }
+            }
+        });
+    }
     upgrade() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -123,7 +132,8 @@ class SchemaUpgrader {
                 if (this.schemaUpgraderConfig.backupAndRestoreOnError) {
                     this.backup();
                 }
-                return this.currentVersion;
+                yield this.doUpgrade();
+                return `Database successfully upgraded to version ${this.currentVersion}.`;
             }
             catch (error) {
                 throw error;

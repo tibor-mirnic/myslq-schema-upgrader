@@ -20,18 +20,9 @@ let a = () => __awaiter(this, void 0, void 0, function* () {
             upgradeScriptsPath: path.join(__dirname, 'scripts'),
             backupPath: path.join(__dirname, 'backup')
         });
-        let current = yield upgrader.upgrade();
-        console.log(current);
+        let msg = yield upgrader.upgrade();
+        console.log(msg);
         process.exit();
-        // .upgrade()
-        // .then((current: any) => {
-        //   console.log(current);
-        //   process.exit();
-        // })
-        // .catch((error: SchemaUpgraderError) => {
-        //   console.log(error.prettify());
-        //   process.exit();
-        // });
     }
     catch (error) {
         const e = error;

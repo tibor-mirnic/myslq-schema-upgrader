@@ -14,18 +14,9 @@ let a = async () => {
       backupPath: path.join(__dirname, 'backup')
     });
 
-    let current = await upgrader.upgrade();
-    console.log(current);
+    let msg = await upgrader.upgrade();
+    console.log(msg);
     process.exit();
-    // .upgrade()
-    // .then((current: any) => {
-    //   console.log(current);
-    //   process.exit();
-    // })
-    // .catch((error: SchemaUpgraderError) => {
-    //   console.log(error.prettify());
-    //   process.exit();
-    // });
   }
   catch(error) {
     const e: SchemaUpgraderError = error;

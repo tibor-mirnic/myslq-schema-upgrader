@@ -22,7 +22,7 @@ export class SchemaUpgrader {
       backupAndRestoreOnError: true,
       deleteOnUpgrade: false,
       getVersionQuery: 'SELECT current FROM version',
-      setVersionQuery: 'UPDATE version SET current=:version'
+      setVersionQuery: 'UPDATE version SET current=?'
     };
 
     this.upgradeScripts = [];    
@@ -113,20 +113,27 @@ export class SchemaUpgrader {
     child_process.execSync(command, { stdio:[0,1,2] });
   }
 
-  // doUpgrade() {
-  //   let promiseArray = [];
-  //   return new Promise((resolve, reject) => {
-  //     try {
-  //       let current = parseInt(this.currentVersion);
-  //       for(let i = current; i < this.upgradeScripts.length; i++) {
-          
-  //       }
-  //     }
-  //     catch(error) {
-  //       reject(new SchemaUpgraderError((error || '').toString()));
-  //     }
-  //   });
-  // }
+  async doUpgrade() {
+    try {
+      let current = parseInt(this.currentVersion);
+      for(let i = current + 1; i < this.upgradeScripts.length; i++) {
+        await this.knex.raw(this.upgradeScripts[i].sql);             
+      }
+
+      let updatedVersion = this.upgradeScripts[this.upgradeScripts.length - 1].name.substring(0, 4);
+      await this.knex.raw(this.schemaUpgraderConfig.setVersionQuery || '', [updatedVersion]);
+      this.currentVersion = updatedVersion;
+    }
+    catch(error) {
+      try {        
+        this.restore();
+        throw error;
+      }
+      catch(e) {
+        throw new SchemaUpgraderError((e || '').toString());
+      }      
+    }
+  }
 
   async upgrade() {
     try {
@@ -142,7 +149,8 @@ export class SchemaUpgrader {
         this.backup();
       }
       
-      return this.currentVersion;      
+      await this.doUpgrade();
+      return `Database successfully upgraded to version ${this.currentVersion}.`;
     }
     catch(error) {
       throw error;
