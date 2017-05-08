@@ -11,7 +11,7 @@ new SchemaUpgrader({
     database: 'test'
   },
   upgradeScriptsPath: path.join(__dirname, 'scripts'),
-  backupPath: path.join(__dirname, 'backupff')  
+  backupPath: path.join(__dirname, 'backup')  
 })
 .upgrade()
 .then((current: any) => {
