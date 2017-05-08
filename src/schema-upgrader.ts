@@ -1,5 +1,6 @@
 import { ISchemaUpgrader } from './interfaces/schema-upgrader';
 import { ISqlScript } from './interfaces/sql-script';
+import { SchemaUpgraderError } from './schema-upgrader-error';
 
 import * as fs from 'fs-extra';
 import * as path from 'path';
@@ -15,58 +16,73 @@ export class SchemaUpgrader {
     this.schemaUpgraderConfig = <ISchemaUpgrader>{
       backupAndRestoreOnError: true,
       deleteOnUpgrade: false,
-      getVersionQuery: 'SELECT Current FROM Version',
-      setVersionQuery: 'UPDATE Version SET Current=:version'
+      getVersionQuery: 'SELECT current FROM version',
+      setVersionQuery: 'UPDATE version SET current=:version'
     };
 
     this.upgradeScripts = [];    
 
-    // Apply the configuration
+    // Apply the configuration  
     Object.assign(this.schemaUpgraderConfig, options);    
-
-    this.init();
-  }
-
-  init() {
-    this.validateSchemaConfig();
-    this.createConnection();    
-    this.loadScripts();
   }
 
   createConnection() {
-    this.knex = client(Object.assign({
-      debug: true,
-      client: 'mysql'
-    }, this.schemaUpgraderConfig.connectionOptions));
+    let config = {
+      debug: this.schemaUpgraderConfig.debug,
+      client: 'mysql',
+      pool: {
+        min: 2,
+        max: 10
+      },
+      connection: Object.assign({}, this.schemaUpgraderConfig.connectionOptions)
+    };
+    
+    this.knex = client(config);
   }
 
-  validateSchemaConfig() {
+  testConnection() {
+    return new Promise((resolve, reject) => {
+      this.knex.raw('SELECT 1 AS RESULT')
+      .then(() => {
+        resolve(true);
+      })
+      .catch((error) => {          
+        reject(new SchemaUpgraderError((error || '').toString(), 'Testing Connection Error'));
+      });
+    });
+  }
+
+  validateConfig() {
     if(!this.schemaUpgraderConfig.connectionOptions) {
-      throw 'Please define connection config!';
+      throw new SchemaUpgraderError('Please define connection config');
     }
 
-    if(!this.schemaUpgraderConfig.upgradeScriptsPath) {
-      throw 'Please define sql scripts upgrade folder path!';
+    if(!fs.pathExistsSync(this.schemaUpgraderConfig.upgradeScriptsPath)) {
+      throw new SchemaUpgraderError('Please define scripts upgrade folder path');
+    }
+
+    if(!fs.pathExistsSync(this.schemaUpgraderConfig.backupPath)) {
+      throw new SchemaUpgraderError('Please define database backup location path');
     }
   }  
 
   loadScripts() {
-    if(!fs.pathExistsSync(this.schemaUpgraderConfig.upgradeScriptsPath)) {
-      throw 'Unknow scripts path!';
-    }
-
-    // read script from folder and save them to an array
     fs.readdirSync(this.schemaUpgraderConfig.upgradeScriptsPath)
-    .forEach(sqlScriptPath => {
-      let pathParts = sqlScriptPath.split(path.sep);
-      let script = pathParts[pathParts.length - 1];      
+    .forEach(fileName => {      
+      /*
+        Sql script naminm convection is xxxx - Description text.sql, where
+        xxxx is number from 0000 to 9999
+      */
+      let scriptNumber = parseInt(fileName.substring(0, 4));
+      let filePath = path.join(this.schemaUpgraderConfig.upgradeScriptsPath, fileName);
+      let fileContent = fs.readFileSync(filePath, 'UTF8');
 
       this.upgradeScripts.push(<ISqlScript>{
-        path: sqlScriptPath,
-        name: script.substring(6),
-        number: parseInt(script.substring(0, 3)),
-        sql: fs.readFileSync(sqlScriptPath, 'UTF8')
-      });
+        path: filePath,
+        name: fileName,
+        number: scriptNumber,
+        sql: fileContent
+      });            
     });
 
     // Sort the array ascending
@@ -76,9 +92,28 @@ export class SchemaUpgrader {
   }
 
   upgrade() {
-    this.knex.transaction(trx => {
-      return trx.raw(this.schemaUpgraderConfig.getVersionQuery)
-      .then()
-    });
+    return new Promise((resolve, reject) => {
+      try {
+        this.validateConfig();
+        this.loadScripts();
+        this.createConnection();
+        this.testConnection()
+        .then(() => {     
+          this.knex.raw(this.schemaUpgraderConfig.getVersionQuery || '')            
+          .then(response => {
+            resolve(response[0][0]);
+          })
+          .catch(error => {              
+            reject(new SchemaUpgraderError((error || '').toString()));
+          });          
+        })
+        .catch((error) => {
+          reject(error);
+        });
+      }
+      catch(error) {
+        reject(error);
+      }
+    });    
   }
 }

@@ -4,9 +4,9 @@ export declare class SchemaUpgrader {
     private upgradeScripts;
     private knex;
     constructor(options: ISchemaUpgrader);
-    init(): void;
     createConnection(): void;
-    validateSchemaConfig(): void;
+    testConnection(): Promise<{}>;
+    validateConfig(): void;
     loadScripts(): void;
-    upgrade(): void;
+    upgrade(): Promise<{}>;
 }

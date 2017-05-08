@@ -4,7 +4,7 @@
   "description": "Database backup and upgrade",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/index.js"
   },
   "repository": {
     "type": "git",
@@ -20,5 +20,10 @@
     "@types/fs-extra": "^3.0.0",
     "@types/knex": "0.0.50",
     "@types/mysql": "0.0.32"
+  },
+  "dependencies": {
+    "fs-extra": "^3.0.0",
+    "knex": "^0.13.0",
+    "mysql": "^2.13.0"
   }
 }

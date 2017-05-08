@@ -10,27 +10,32 @@ export interface ISchemaUpgrader {
   upgradeScriptsPath: string;
   
   /*
-    Location of database backup files. It takes default location.
+    Location of database backup files.
   */
-  backupLocation: string;
+  backupPath: string;
+
+  /*
+    Enable debug messages in knex
+  */
+  debug?: boolean;
   
   /*
     Create a database backup on upgrade and restore database if upgrade fails. Defaults to "true".
   */
-  backupAndRestoreOnError: boolean;
+  backupAndRestoreOnError?: boolean;
 
   /*
     Delete backup file after successfull database upgrade. Defaults to "false".
   */
-  deleteOnUpgrade: boolean;
+  deleteOnUpgrade?: boolean;
 
   /*
     Query to get current database version. Default is 'SELECT Current FROM Version'.
   */
-  getVersionQuery: string;
+  getVersionQuery?: string;
 
   /*
     Query to set current database version. Default is 'UPDATE Version SET Current=:version'.
   */
-  setVersionQuery: string;
+  setVersionQuery?: string;
 }
